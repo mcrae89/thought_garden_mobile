@@ -1,26 +1,33 @@
-import { gql, useQuery, ApolloProvider } from "@apollo/client";
+// App.tsx
+import React, { useEffect, useState } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { ApolloProvider } from "@apollo/client";
+import { SafeAreaProvider } from "react-native-safe-area-context"; // + add
 import { client } from "./lib/api/apolloClient";
-import { Text, View } from "react-native";
-
-const HELLO_QUERY = gql`
-  query {
-    hello
-  }
-`;
-
-function Hello() {
-  const { loading, error, data } = useQuery(HELLO_QUERY);
-  if (loading) return <Text>Loading...</Text>;
-  if (error) return <Text>Error: {error.message}</Text>;
-  return <Text>GraphQL says: {data.hello}</Text>;
-}
+import { getAccessToken } from "./lib/auth/tokens";
+import AuthScreen from "./app/screens/AuthScreen";
+import ProfileScreen from "./app/screens/ProfileScreen";
 
 export default function App() {
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => setAuthed(!!(await getAccessToken())))();
+  }, []);
+
   return (
     <ApolloProvider client={client}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Hello />
-      </View>
+      <SafeAreaProvider> {/* + wrap */}
+        {authed === null ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator />
+          </View>
+        ) : authed ? (
+          <ProfileScreen onLogout={() => setAuthed(false)} />
+        ) : (
+          <AuthScreen onAuthed={() => setAuthed(true)} />
+        )}
+      </SafeAreaProvider> {/* + wrap */}
     </ApolloProvider>
   );
 }
